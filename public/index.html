@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Modern SocialCalc</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css"
+    />
+  </head>
+  <body>
+    <div id="spreadsheet"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      // Initialize Handsontable
+      const container = document.getElementById("spreadsheet");
+      const hot = new Handsontable(container, {
+        data: [
+          ["", "Year", "Sales", "Profit"],
+          ["Q1", 2024, 12000, 5000],
+          ["Q2", 2024, 15000, 7000],
+          ["Q3", 2024, 17000, 9000],
+          ["Q4", 2024, 13000, 6000],
+        ],
+        colHeaders: true,
+        rowHeaders: true,
+        width: "100%",
+        height: "400px",
+      });
+
+      // Set up Socket.IO
+      const socket = io();
+
+      socket.on("connect", () => {
+        console.log("Connected to the server");
+      });
+
+      // Emit changes to the server
+      hot.addHook("afterChange", (changes, source) => {
+        if (source === "edit") {
+          socket.emit("cellChange", changes);
+        }
+      });
+
+      // Update the spreadsheet with changes from other users
+      socket.on("cellUpdate", (changes) => {
+        // Handsontable expects an array of changes, so you need to adjust the data structure
+        changes.forEach(([row, col, oldValue, newValue]) => {
+          hot.setDataAtCell(row, col, newValue);
+        });
+      });
+    </script>
+  </body>
+</html>
